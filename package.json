@@ -11,5 +11,9 @@
   "devDependencies": {
     "vite": "^2.9.9",
     "vitest": "^0.12.9"
+  },
+  "dependencies": {
+    "@xstate/inspect": "^0.7.0",
+    "xstate": "^4.32.1"
   }
 }

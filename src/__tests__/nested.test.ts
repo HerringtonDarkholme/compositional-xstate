@@ -51,21 +51,22 @@ const machine = createMachine({
 
 function walkingDogMachine(createMachine: CreateMachine){
   const g = createMachine({})
-  const waiting = g.state()
-  const onAWalk = g.state().compound(subMachine)
-  const walkComplete = g.state().final()
+  const waiting = g.state('waiting')
+  const onAWalk = g.state('on a walk').compound(subMachine)
+  const walkComplete = g.state('walk complete').final()
 
   g.transition('leaveHome')
     .from(waiting).to(onAWalk)
   g.transition('arriveHome')
     .from(onAWalk).to(walkComplete)
+  return waiting
 }
 
 function subMachine(createMachine: CreateMachine) {
   const g = createMachine({})
 
-  const walking = g.state()
-  const running = g.state()
+  const walking = g.state('walking')
+  const running = g.state('running')
   const sniffing = g.state('stopping to sniff good smells')
 
   g.transition('speed up')
@@ -75,5 +76,5 @@ function subMachine(createMachine: CreateMachine) {
     .from(walking).to(sniffing)
   g.transition('slowDown')
     .from(running).to(walking)
-
+  return walking
 }
