@@ -1,5 +1,6 @@
 import { inspect } from '@xstate/inspect';
-import {inspectMachine, CreateMachine} from './index'
+import { inspectMachine, CreateMachine } from './index'
+import './styles/main.css'
 
 inspect({
   // options
@@ -16,7 +17,7 @@ function defineMachine(c: CreateMachine) {
   return pending
 }
 
-function walkDogMachine(createMachine: CreateMachine){
+function walkDogMachine(createMachine: CreateMachine) {
   // create initial context here
   const g = createMachine()
 
