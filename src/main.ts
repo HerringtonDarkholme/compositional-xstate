@@ -3,7 +3,7 @@ import {inspectMachine, CreateMachine} from './index'
 
 inspect({
   // options
-  iframe: document.getElementById('debug') // open in new window
+  iframe: document.getElementsByTagName('iframe')[0] // open in new window
 });
 
 function defineMachine(c: CreateMachine) {
@@ -53,7 +53,7 @@ function onWalkSubMachine(createMachine: CreateMachine) {
   return walking
 }
 
-document.getElementById('app').textContent = defineMachine.toString()
+document.getElementById('app')!.textContent = defineMachine.toString()
 
 inspectMachine(walkDogMachine)
 

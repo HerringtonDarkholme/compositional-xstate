@@ -1,28 +1,13 @@
-import { interpret, createMachine, MachineConfig as MachineConfigImpl } from 'xstate';
-type XStateConfig = MachineConfigImpl<any, any, any>
-interface StateRef {
-  name: string
-}
-interface State<T> extends StateRef {
-  description(desc: string): this
-  // run action when enter state
-  entry(action: Action<T, unknown>): this
-  // run action when exit state
-  exit(action: Action<T, unknown>): this
-  // user annotation for meta data
-  meta(data: unknown): this
-  // annotate state with tag for editor
-  tag(tagName: string): this
+import { interpret, createMachine, MachineConfig as OriginalConfig } from 'xstate';
+import type {
+  State, Action, Guard,
+  CompoundState, MachineDefine, ParallelState,
+  StateRef, TransitionFrom, TransitionTo, Transition,
+  CreateMachine, MachineConfig, HistoryState,
+} from './types'
+export type {CreateMachine} from './types'
 
-  // Hierarchical state
-  compound(define: MachineDefine): CompoundState<T>
-  // two or more child states without initial stat
-  parallel<Children extends State<unknown>[]>(...children: Children): ParallelState
-  // represents resolving to its parent node's most recent shallow or deep history state.
-  history(type: 'deep' | 'shallow'): HistoryState
-  // final state
-  final(): StateRef
-}
+type XStateConfig = OriginalConfig<any, any, any>
 
 class StateImpl<T> implements State<T> {
   constructor(public name: string, private config: any) {}
@@ -55,6 +40,7 @@ class StateImpl<T> implements State<T> {
     const [config, cm] = initializer()
     config.initial = define(cm).name
     this.config.states = config.states
+    this.config.initial = config.initial
     return this
   }
   // two or more child states without initial stat
@@ -77,48 +63,6 @@ class StateImpl<T> implements State<T> {
   }
 }
 
-interface CompoundState<T> extends StateRef {
-  onDone(action: Action<T, unknown>): this
-}
-
-interface ParallelState extends StateRef {
-  onDone<T>(state: State<T>): this
-  // mutlipleTarget
-}
-
-interface HistoryState extends StateRef {
-  target(s: StateRef): StateRef
-}
-
-interface CondMeta<C> {
-  //the original condition object
-  cond: {type: string,} & C
-}
-
-interface Guard<T, P, C={}> {
-  (context: T, event: P, condMeta: CondMeta<C>): boolean
-}
-interface Action<T, P> {
-  (context: T, event: P): void
-}
-
-interface TransitionFrom<T, P> {
-  from(s: StateRef): TransitionTo<T, P>
-}
-interface TransitionTo<T, P> {
-  to(s: StateRef): Transition<T, P>
-}
-
-interface Transition<T, P> {
-  // A self-transition is when a state transitions to itself, in which it may exit and then reenter itself.
-  // Self-transitions can either be an internal or external transition:
-  // An internal transition will neither exit nor re-enter itself, but may enter different child states.
-  // An external transition will exit and re-enter itself, and may also exit/enter child states.
-  internal(): this
-  guard<C>(fn: Guard<T, P, C>, meta?: C): this
-  action(...fn: Action<T, P>[]): this
-  from(s: StateRef): TransitionTo<T, P>
-}
 
 class TransitionFromImpl<T, P> implements TransitionFrom<T, P> {
   constructor(public name: string, public states: Record<string, any>) {}
@@ -159,7 +103,7 @@ class TransitionImpl<T, P> implements TransitionTo<T, P>, Transition<T, P> {
   }
 }
 
-export class MachineConfig<T> {
+export class MachineConfigImpl<T> implements MachineConfig<T> {
   config: any
   constructor(config: any) {
     this.config = config
@@ -182,21 +126,11 @@ export class MachineConfig<T> {
   }
 }
 
-export interface CreateMachine {
-  <T>(initializer?: Initializer<T>): MachineConfig<T>
-}
-
-interface Initializer<T> {
-    id?: string,
-    initialContext?: T
-}
-
 function initializer(): [XStateConfig, CreateMachine] {
   const config: XStateConfig = {}
-  return [config, (initializer) => new MachineConfig(config)]
+  return [config, (initializer) => new MachineConfigImpl(config)]
 }
 
-export type MachineDefine = (c: CreateMachine) => StateRef
 
 export function inspectMachine(define: MachineDefine) {
   const [config, cm] = initializer()
