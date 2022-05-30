@@ -1,5 +1,7 @@
-interface State<T> {
-  description: string
+interface StateRef {
+}
+interface State<T> extends StateRef {
+  description(desc: string): this
   // run action when enter state
   entry(action: Action<T, unknown>): this
   // run action when exit state
@@ -10,62 +12,79 @@ interface State<T> {
   tag(tagName: string): this
 
   // Hierarchical state
-  compound<I>(config: Config<I>): this & {onDone(): State<T>}
+  compound(func: CreateMachine): CompoundState<T>
   // two or more child states without initial stat
-  parallel<Children extends State<unknown>[]>(...children: Children): this & ParallelStateNode
+  parallel<Children extends State<unknown>[]>(...children: Children): ParallelState
   // represents resolving to its parent node's most recent shallow or deep history state.
-  history(type: 'deep' | 'shallow'): this
+  history(type: 'deep' | 'shallow'): HistoryState
   // final state
-  final(): this
+  final(): StateRef
 }
 
-interface ParallelStateNode {
+interface CompoundState<T> extends StateRef {
+  onDone(): StateRef
+}
+
+interface ParallelState extends StateRef {
   onDone<T>(state: State<T>): this
   // mutlipleTarget
 }
 
-interface Guard<T, P> {
-  (context: T, event: P): boolean
+interface HistoryState extends StateRef {
+  target(s: StateRef): StateRef
+}
+
+interface CondMeta<C> {
+  //the original condition object
+  cond: {type: string,} & C
+}
+
+interface Guard<T, P, C={}> {
+  (context: T, event: P, condMeta: CondMeta<C>): boolean
 }
 interface Action<T, P> {
   (context: T, event: P): void
 }
 
+interface TransitionFrom<T, P> {
+  from(s: StateRef): TransitionTo<T, P>
+}
+interface TransitionTo<T, P> {
+  to(s: StateRef): Transition<T, P>
+}
+
 interface Transition<T, P> {
-  from(s: State<T>): this
-  to(s: State<T>): this
   // A self-transition is when a state transitions to itself, in which it may exit and then reenter itself.
   // Self-transitions can either be an internal or external transition:
   // An internal transition will neither exit nor re-enter itself, but may enter different child states.
   // An external transition will exit and re-enter itself, and may also exit/enter child states.
   internal(): this
-  guard(fn: Guard<T, P>): this
-  action(fn: Action<T, P>): this
+  guard<C>(fn: Guard<T, P, C>, meta?: C): this
+  action(...fn: Action<T, P>[]): this
+  from(s: StateRef): TransitionTo<T, P>
 }
 
-interface SpecialTransition {
-  wildcard<T>(): Transition<T, unknown>
+export class MachineConfig<T> {
+  state(name?: string): State<T> {
+    throw new Error('to do!')
+  }
+  transition<P>(name?: string): Transition<T, P> {
+    throw new Error('to do!')
+  }
   // Eventless transition
-  // Will transition to either 'win' or 'lose' immediately upon
-  always(conf: Todo): this
+  // Will transition to another immediately upon entry
+  always(): Transition<T, never> {
+    throw new Error('to do!')
+  }
+  wildcard(): Transition<T, unknown> {
+    throw new Error('to do!')
+  }
 }
 
-type Todo = any
-
-export function state(name?: string): State<Todo> {
-  throw new Error('to do!')
+export interface CreateMachine {
+  <T>(initialState?: {
+    id?: string,
+    initialContext?: T
+  }): MachineConfig<T>
 }
 
-export function transition(): Transition<Todo, Todo> {
-  throw new Error('to do!')
-}
-
-type Dict<T> = Record<string | symbol, T>
-
-interface Config<T> {
-  context?: T
-  states?: Dict<State<T>>
-  transitions?: Dict<Transition<T, unknown>>
-}
-
-export function createStateMachine<T>(machine: Config<T>) {}

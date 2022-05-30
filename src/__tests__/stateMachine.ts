@@ -1,6 +1,4 @@
-import {state, createStateMachine, transition} from '../index'
-
-
+import { CreateMachine } from '../index';
 /*
 const promiseMachine = createMachine({
   id: 'promise',
@@ -22,19 +20,20 @@ const promiseMachine = createMachine({
 });
 */
 
-const pending = state()
-const resolved = state().final()
-const rejected = state().final()
 
-const resolve = transition()
-  .from(pending)
-  .to(resolved)
 
-const reject = transition()
-  .from(pending)
-  .to(rejected)
+function promiseMachine(c: CreateMachine) {
+  const g = c({
+    id: 'promise',
+  })
+  const pending = g.state()
+  const resolved = g.state().final()
+  const rejected = g.state().final()
 
-const promiseMachine = createStateMachine({
-  states: {pending, resolved, rejected},
-  transitions: {resolve, reject},
-})
+  g.transition('RESOLVE')
+    .from(pending).to(resolved)
+
+  g.transition('REJECT')
+    .from(pending).to(rejected)
+  return pending
+}

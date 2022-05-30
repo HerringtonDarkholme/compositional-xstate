@@ -1,4 +1,4 @@
-import {state, createStateMachine, transition} from '../index'
+import {CreateMachine} from '../index'
 /*
 const machine = createMachine({
   initial: "waiting",
@@ -49,27 +49,31 @@ const machine = createMachine({
 });
 */
 
-const walking = state()
-const running = state()
-const sniffing = state('stopping to sniff good smells')
+function walkingDogMachine(createMachine: CreateMachine){
+  const g = createMachine({})
+  const waiting = g.state()
+  const onAWalk = g.state().compound(subMachine)
+  const walkComplete = g.state().final()
 
-const speedUp = transition()
-  .from(walking).to(running)
-  .from(sniffing).to(walking)
-const stop = transition().from(walking).to(sniffing)
-const slowDown = transition().from(running).to(walking)
+  g.transition('leaveHome')
+    .from(waiting).to(onAWalk)
+  g.transition('arriveHome')
+    .from(onAWalk).to(walkComplete)
+}
 
-const waiting = state()
-const onAWalk = state().compound({
-  states: {walking, running, sniffing},
-  transitions: { speedUp, stop, slowDown },
-})
-const walkComplete = state().final()
+function subMachine(createMachine: CreateMachine) {
+  const g = createMachine({})
 
+  const walking = g.state()
+  const running = g.state()
+  const sniffing = g.state('stopping to sniff good smells')
 
-const leaveHome = transition().from(waiting).to(onAWalk)
+  g.transition('speed up')
+    .from(walking).to(running)
+    .from(sniffing).to(walking)
+  g.transition('stop')
+    .from(walking).to(sniffing)
+  g.transition('slowDown')
+    .from(running).to(walking)
 
-createStateMachine({
-  states: {waiting, onAWalk, walkComplete},
-  transitions: {leaveHome}
-})
+}
