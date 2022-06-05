@@ -36,9 +36,9 @@ class StateImpl<T> implements State<T> {
   }
 
   // Hierarchical state
-  compound(define: MachineDefine): CompoundState<T> {
+  compound<U>(define: MachineDefine<U>): CompoundState<T> {
     const [config, cm] = initializer()
-    config.initial = define(cm).name
+    config.initial = define(cm).initial.name
     this.config.states = config.states
     this.config.initial = config.initial
     return this
@@ -108,13 +108,15 @@ export class MachineConfigImpl<T> implements MachineConfig<T> {
   constructor(config: any) {
     this.config = config
   }
-  state(name: string): State<T> {
+  state(): State<T> {
+    let stateName = 'TODO'
     this.config.states = this.config.states || {}
-    this.config.states[name] = { }
-    return new StateImpl(name, this.config.states[name])
+    this.config.states[stateName] = { }
+    return new StateImpl(stateName, this.config.states[stateName])
   }
-  transition<P>(name: string): TransitionFrom<T, P> {
-    return new TransitionFromImpl(name, this.config.states)
+  transition<P>(): TransitionFrom<T, P> {
+    let transitionName = 'TODO'
+    return new TransitionFromImpl(transitionName, this.config.states)
   }
   // Eventless transition
   // Will transition to another immediately upon entry
@@ -132,9 +134,9 @@ function initializer(): [XStateConfig, CreateMachine] {
 }
 
 
-export function inspectMachine(define: MachineDefine) {
+export function inspectMachine<S, T>(define: MachineDefine<S, T>) {
   const [config, cm] = initializer()
-  config.initial = define(cm).name
+  config.initial = define(cm).initial.name
   console.log(config)
   const machine = createMachine(config)
   const service = interpret(machine, { devTools: true });

@@ -1,7 +1,7 @@
-export interface StateRef {
-  name: string
+export interface StateRef<Name> {
+  name: Name
 }
-export interface State<T> extends StateRef {
+export interface State<N, T> extends StateRef<N> {
   description(desc: string): this
   // run action when enter state
   entry(action: Action<T, unknown>): this
@@ -13,26 +13,28 @@ export interface State<T> extends StateRef {
   tag(tagName: string): this
 
   // Hierarchical state
-  compound(define: MachineDefine): CompoundState<T>
+  compound<R extends Trans>(define: MachineDefine<R>): CompoundState<N, T, R>
   // two or more child states without initial stat
-  parallel<Children extends State<unknown>[]>(...children: Children): ParallelState
+  parallel<Children extends State<string, unknown>[]>(...children: Children): ParallelState<N>
   // represents resolving to its parent node's most recent shallow or deep history state.
-  history(type: 'deep' | 'shallow'): HistoryState
+  history(type: 'deep' | 'shallow'): HistoryState<N>
   // final state
-  final(): StateRef
+  final(): StateRef<N>
+  initial(): StateRef<N>
 }
 
-export interface CompoundState<T> extends StateRef {
+export interface CompoundState<N, T, R> extends StateRef<N> {
   onDone(action: Action<T, unknown>): this
+  readonly subTransitions: R,
 }
 
-export interface ParallelState extends StateRef {
-  onDone<T>(state: State<T>): this
+export interface ParallelState<N> extends StateRef<N> {
+  onDone<M>(state: StateRef<M>): this
   // mutlipleTarget
 }
 
-export interface HistoryState extends StateRef {
-  target(s: StateRef): StateRef
+export interface HistoryState<N> extends StateRef<N> {
+  target<M>(s: StateRef<M>): StateRef<M>
 }
 
 interface CondMeta<C> {
@@ -47,15 +49,11 @@ export interface Action<T, P> {
   (context: T, event: P): void
 }
 
-export interface TransitionFrom<T, P> {
-  from(s: StateRef): TransitionTo<T, P>
+export interface TransitionFrom<T, P, States=never> {
+  from<N>(s: StateRef<N>): Transition<T, P>
 }
 
-export interface TransitionTo<T, P> {
-  to(s: StateRef): Transition<T, P>
-}
-
-export interface Transition<T, P> {
+export interface Transition<T, P=unknown, States=never> {
   // A self-transition is when a state transitions to itself, in which it may exit and then reenter itself.
   // Self-transitions can either be an internal or external transition:
   // An internal transition will neither exit nor re-enter itself, but may enter different child states.
@@ -63,7 +61,8 @@ export interface Transition<T, P> {
   internal(): this
   guard<C>(fn: Guard<T, P, C>, meta?: C): this
   action(...fn: Action<T, P>[]): this
-  from(s: StateRef): TransitionTo<T, P>
+  connect<M, N>(from: StateRef<M>, to: StateRef<N>): Transition<T, P, States | [M, N]>
+  readonly statePhantomType: States
 }
 
 interface Initializer<T> {
@@ -73,9 +72,9 @@ interface Initializer<T> {
 
 export interface MachineConfig<T> {
   // declare state
-  state(name: string): State<T>
+  state<N extends string>(n: N): State<N, T>
   // declare transitions
-  transition<P>(name: string): TransitionFrom<T, P>
+  transition<P>(): TransitionFrom<T, P>
   // Eventless transition, State will transition to another immediately upon entry
   always(): Transition<T, never>
   // Wildcard transtion catches all other events not handled
@@ -86,4 +85,25 @@ export interface CreateMachine {
   <T>(initializer?: Initializer<T>): MachineConfig<T>
 }
 
-export type MachineDefine = (c: CreateMachine) => StateRef
+type Trans = Record<string, Transition<unknown, unknown>>
+
+export type MachineDefine<T extends Trans> = (c: CreateMachine) => T
+
+export type ExtractMachine<T extends Trans> = {
+  [K in keyof T]: T[K]['statePhantomType']
+}
+
+
+type UnionToIntersection<T> =
+  (T extends any ? (x: T) => any : never) extends
+  (x: infer R) => any ? R : never
+
+type Transpose<Table> =
+  UnionToIntersection<TransposeAux<keyof Table, Table>>
+
+type TransposeAux<Key extends keyof Table,Table> =
+  Key extends string ? TransposeOne<Key, Table[Key]> : never
+
+type TransposeOne<EventName extends string, StateMaps> = {
+  [From in keyof StateMaps]: Record<EventName, StateMaps[From]>
+}

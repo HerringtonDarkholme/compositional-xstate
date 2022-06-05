@@ -50,31 +50,39 @@ const machine = createMachine({
 */
 
 function walkingDogMachine(createMachine: CreateMachine){
-  const g = createMachine({})
-  const waiting = g.state('waiting')
-  const onAWalk = g.state('on a walk').compound(subMachine)
-  const walkComplete = g.state('walk complete').final()
+  const {state, transition} = createMachine({})
+  const waiting = state()
+  const onAWalk = state().compound(subMachine)
+  const walkComplete = state().final()
 
-  g.transition('leaveHome')
+  const leaveHome = transition()
     .from(waiting).to(onAWalk)
-  g.transition('arriveHome')
+  const arriveHome = transition()
     .from(onAWalk).to(walkComplete)
-  return waiting
+  return {
+    initial: waiting,
+    states: {waiting, onAWalk, walkComplete},
+    transitions: {leaveHome, arriveHome},
+  }
 }
 
 function subMachine(createMachine: CreateMachine) {
-  const g = createMachine({})
+  const {state, transition} = createMachine({})
 
-  const walking = g.state('walking')
-  const running = g.state('running')
-  const sniffing = g.state('stopping to sniff good smells')
+  const walking = state()
+  const running = state()
+  const sniffing = state()
 
-  g.transition('speed up')
+  const speedUp = transition()
     .from(walking).to(running)
     .from(sniffing).to(walking)
-  g.transition('stop')
+  const stop = transition()
     .from(walking).to(sniffing)
-  g.transition('slowDown')
+  const speedDown = transition()
     .from(running).to(walking)
-  return walking
+  return {
+    initial: walking,
+    states: {walking, running, sniffing},
+    transitions: {speedUp, speedDown, stop},
+  }
 }

@@ -23,17 +23,22 @@ const promiseMachine = createMachine({
 
 
 function promiseMachine(c: CreateMachine) {
-  const g = c({
+  const {state, transition} = c({
     id: 'promise',
   })
-  const pending = g.state('pending')
-  const resolved = g.state('resolved').final()
-  const rejected = g.state('rejected').final()
+  const pending = state()
+  const resolved = state().final()
+  const rejected = state().final()
 
-  g.transition('RESOLVE')
+  const resolve = transition()
     .from(pending).to(resolved)
 
-  g.transition('REJECT')
+  const reject = transition()
     .from(pending).to(rejected)
-  return pending
+
+  return {
+    initial: pending,
+    states: {pending, resolved, rejected},
+    transition: {resolve, reject},
+  }
 }
