@@ -1,5 +1,7 @@
 import { inspect } from '@xstate/inspect';
-import {inspectMachine, CreateMachine} from './index'
+import { ExtractTransition, Transpose } from 'types';
+import { interpretMachine, CreateMachine } from './index'
+import './styles/main.css'
 
 inspect({
   // options
@@ -10,24 +12,27 @@ function defineMachine(c: CreateMachine) {
   const {state, transition} = c({
     id: 'promise',
   })
-  const pending = state()
-  const resolved = state().final()
-  const rejected = state().final()
+  const pending = state('pending').initial()
+  const resolved = state('resolved').final()
+  const rejected = state('rejected').final()
 
   const resolve = transition()
-    .from(pending).to(resolved)
+    .connect(pending, resolved)
 
   const reject = transition()
-    .from(pending).to(rejected)
+    .connect(pending, resolved)
 
-  return {
-    initial: pending,
-    states: {pending, resolved, rejected},
-    transition: {resolve, reject},
-  }
+  return {resolve, reject}
+
 }
 
 
 document.getElementById('app')!.textContent = defineMachine.toString()
 
-inspectMachine(defineMachine)
+const machine = interpretMachine(defineMachine)
+
+type Ret = ReturnType<typeof defineMachine>
+type TransitionTable = Transpose<ExtractTransition<Ret>>
+declare var a: TransitionTable
+
+machine.send('resolve')

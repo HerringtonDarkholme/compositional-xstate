@@ -2,8 +2,9 @@ import { interpret, createMachine, MachineConfig as OriginalConfig } from 'xstat
 import type {
   State, Action, Guard,
   CompoundState, MachineDefine, ParallelState,
-  StateRef, TransitionFrom, TransitionTo, Transition,
+  StateRef, TransitionFrom, Transition,
   CreateMachine, MachineConfig, HistoryState,
+  ExtractTransition, Machine, Transpose,
 } from './types'
 export type {CreateMachine} from './types'
 
@@ -98,7 +99,7 @@ class TransitionImpl<T, P> implements TransitionTo<T, P>, Transition<T, P> {
     this.on.actions.push(fn)
     return this
   }
-  from(s: StateRef): TransitionTo<T, P> {
+  from(s: StateRef): Transition<T, P> {
     return this.parent.from(s)
   }
 }
@@ -121,10 +122,10 @@ export class MachineConfigImpl<T> implements MachineConfig<T> {
   // Eventless transition
   // Will transition to another immediately upon entry
   always(): Transition<T, never> {
-    throw new Error('to do!')
+    throw new Error('TODO!')
   }
   wildcard(): Transition<T, unknown> {
-    throw new Error('to do!')
+    throw new Error('TODO!')
   }
 }
 
@@ -133,12 +134,10 @@ function initializer(): [XStateConfig, CreateMachine] {
   return [config, (initializer) => new MachineConfigImpl(config)]
 }
 
-
-export function inspectMachine<S, T>(define: MachineDefine<S, T>) {
+export function interpretMachine<T>(define: MachineDefine<T>): Machine<Transpose<ExtractTransition<T>>> {
   const [config, cm] = initializer()
   config.initial = define(cm).initial.name
   console.log(config)
   const machine = createMachine(config)
-  const service = interpret(machine, { devTools: true });
-  service.start();
+  return interpret(machine, { devTools: true });
 }

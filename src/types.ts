@@ -50,7 +50,7 @@ export interface Action<T, P> {
 }
 
 export interface TransitionFrom<T, P, States=never> {
-  from<N>(s: StateRef<N>): Transition<T, P>
+  connect<M extends string, N>(from: StateRef<M>, to: StateRef<N>): Transition<T, P, States | Record<M, N>>
 }
 
 export interface Transition<T, P=unknown, States=never> {
@@ -89,7 +89,14 @@ type Trans = Record<string, Transition<unknown, unknown>>
 
 export type MachineDefine<T extends Trans> = (c: CreateMachine) => T
 
-export type ExtractMachine<T extends Trans> = {
+export type Machine<Table, S = keyof Table> = {
+  state: S,
+} & (
+  S extends keyof Table ? {
+  send<E extends keyof Table[S]>(event: E): Machine<Table, Table[S][E]>
+} : {})
+
+export type ExtractTransition<T extends Trans> = {
   [K in keyof T]: T[K]['statePhantomType']
 }
 
@@ -98,7 +105,7 @@ type UnionToIntersection<T> =
   (T extends any ? (x: T) => any : never) extends
   (x: infer R) => any ? R : never
 
-type Transpose<Table> =
+export type Transpose<Table> =
   UnionToIntersection<TransposeAux<keyof Table, Table>>
 
 type TransposeAux<Key extends keyof Table,Table> =
