@@ -26,19 +26,15 @@ function promiseMachine(c: CreateMachine) {
   const {state, transition} = c({
     id: 'promise',
   })
-  const pending = state()
-  const resolved = state().final()
-  const rejected = state().final()
+  const pending = state('pending').initial()
+  const resolved = state('resolved').final()
+  const rejected = state('rejected').final()
 
-  const resolve = transition()
-    .from(pending).to(resolved)
+  const resolve = transition('resolve')
+    .connect(pending, resolved)
 
-  const reject = transition()
-    .from(pending).to(rejected)
+  const reject = transition('reject')
+    .connect(pending, rejected)
 
-  return {
-    initial: pending,
-    states: {pending, resolved, rejected},
-    transition: {resolve, reject},
-  }
+  return { resolve, reject, }
 }
