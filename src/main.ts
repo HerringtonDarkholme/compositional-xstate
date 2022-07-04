@@ -1,5 +1,4 @@
 import { inspect } from '@xstate/inspect';
-import { interpretMachine, CreateMachine } from './index'
 import './styles/main.css'
 
 inspect({

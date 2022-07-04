@@ -1,17 +1,21 @@
-var Transition: any
+import {State, transition, Machine} from '../types'
 
-class Pending {
+class Pending extends State {
   static tag = ''
   static description = ''
-  resolve = Transition().to(Resolved)
-  reject = Transition().to(Rejected)
+  resolve = transition()
+    .to(Resolved).when(() =>  true).action()
+  reject = transition().to(Rejected)
 }
 
-class Resolved {
+class Resolved extends State {
   static isFinal = true
 }
-const ALWAYS = 'test'
-class Rejected  {
-  onDone = Transition.to()
+class Rejected  extends State {
+  static isFinal = true
 }
 
+
+const promiseMachine = new Machine(Pending)
+
+promiseMachine.send('resolve')
